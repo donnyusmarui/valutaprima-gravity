@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
-import { RatesTable } from './components/RatesTable';
+import { RatesTable, RateItem } from './components/RatesTable';
 import { KycCustomerCard } from './components/KycCustomerCard';
 import { TellerKycReview } from './components/TellerKycReview';
+import { TransactionModal } from './components/TransactionModal';
+import { SupervisorAuthorization } from './components/SupervisorAuthorization';
+import { InventoryPanel } from './components/InventoryPanel';
+import { CustomerTransactionHistory } from './components/CustomerTransactionHistory';
 import {
   TrendingUp,
   ShieldCheck,
@@ -11,13 +15,48 @@ import {
   Sparkles,
   AlertTriangle,
   ArrowRight,
+  Receipt,
+  Building2,
+  ShieldAlert,
+  ArrowRightLeft,
 } from 'lucide-react';
 
 function DashboardContent() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'rates' | 'kyc' | 'review'>('rates');
+  const [activeTab, setActiveTab] = useState<
+    'rates' | 'history' | 'kyc' | 'review' | 'supervisor' | 'inventory'
+  >('rates');
+
+  // Trade Modal State
+  const [isTradeOpen, setIsTradeOpen] = useState<boolean>(false);
+  const [tradeCurrency, setTradeCurrency] = useState<string>('USD');
+  const [tradeType, setTradeType] = useState<'BUY' | 'SELL'>('BUY');
+  const [rates, setRates] = useState<RateItem[]>([]);
 
   const isStaff = user?.role === 'teller' || user?.role === 'supervisor';
+
+  // Fetch rates for shared use
+  const fetchRates = async () => {
+    try {
+      const res = await fetch('/api/rates');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setRates(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch rates in App:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchRates();
+  }, []);
+
+  const handleOpenTrade = (curr = 'USD', type: 'BUY' | 'SELL' = 'BUY') => {
+    setTradeCurrency(curr);
+    setTradeType(type);
+    setIsTradeOpen(true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
@@ -52,42 +91,41 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Sprint 1 Banner & Guide */}
-        <div className="rounded-2xl bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 text-white p-6 sm:p-7 shadow-sm border border-emerald-900/30">
+        {/* Sprint 2 Banner & Execution Highlight */}
+        <div className="rounded-2xl bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white p-6 sm:p-7 shadow-sm border border-emerald-800/40">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-2 max-w-3xl">
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
                   <Sparkles className="w-3 h-3 text-amber-400" />
-                  Sprint 1 Aktif
+                  Sprint 2 Aktif
                 </span>
-                <span className="text-xs text-emerald-200">Auth OAuth + Kurs DB + Verifikasi KYC</span>
+                <span className="text-xs text-emerald-200">
+                  Kalkulator Kurs Terkunci + Stok Pecahan Kas + Otorisasi Supervisor PIN (AML/CTR)
+                </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                Money Changer Digital Valuta Prima
+                Digital Foreign Exchange Money Changer & Kas Brankas
               </h1>
               <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
-                Platform penukaran valuta asing berizin resmi. Alur verifikasi berjenjang dari registrasi nasabah,
-                screening kepatuhan AML, hingga papan kurs real-time tersinkronisasi database Neon.
+                Platform penukaran valuta asing berizin resmi Bank Indonesia. Dilengkapi kalkulasi kurs real-time,
+                alokasi pecahan lembar fisik, pengawasan transaksi tunai &gt;= Rp 100 Juta (PPATK), serta otorisasi PIN berjenjang.
               </p>
             </div>
 
-            {/* Quick Flow Hint */}
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-3.5 border border-white/15 text-xs space-y-1.5 min-w-[260px]">
-              <span className="font-bold text-amber-300 text-[11px] uppercase tracking-wider block">
-                Alur Verifikasi E2E:
-              </span>
-              <div className="flex items-center gap-1.5 text-white/90 text-[11px]">
-                <span className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-bold">1</span>
-                <span>Unggah KTP (Customer)</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-white/90 text-[11px]">
-                <span className="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center text-[10px] font-bold">2</span>
-                <span>Ganti Role & Review (Teller)</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-white/90 text-[11px]">
-                <span className="w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center text-[10px] font-bold">3</span>
-                <span>Customer Terverifikasi!</span>
+            {/* Quick Action Button */}
+            <div className="flex flex-col sm:flex-row md:flex-col gap-2 flex-shrink-0">
+              <button
+                onClick={() => handleOpenTrade('USD', 'BUY')}
+                className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition shadow-md flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+                <span>Mulai Transaksi Valas</span>
+              </button>
+
+              <div className="bg-white/10 backdrop-blur-md rounded-xl px-3 py-2 border border-white/15 text-[11px] text-emerald-200 flex items-center justify-center gap-1.5">
+                <span>PIN Supervisor Demo:</span>
+                <code className="font-bold text-amber-300 bg-black/30 px-1.5 py-0.5 rounded">123456</code>
               </div>
             </div>
           </div>
@@ -108,6 +146,18 @@ function DashboardContent() {
           </button>
 
           <button
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'history'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Riwayat Transaksi</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('kyc')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
               activeTab === 'kyc'
@@ -124,55 +174,118 @@ function DashboardContent() {
             )}
           </button>
 
+          {/* Supervisor / Teller Specific Tabs */}
           <button
-            onClick={() => setActiveTab('review')}
+            onClick={() => setActiveTab('supervisor')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-              activeTab === 'review'
-                ? 'bg-indigo-600 text-white shadow-xs'
+              activeTab === 'supervisor'
+                ? 'bg-purple-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <FileCheck className="w-4 h-4" />
-            <span>Review KYC Nasabah</span>
-            {isStaff && (
+            <ShieldAlert className="w-4 h-4" />
+            <span>Otorisasi Supervisor</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800 text-[10px] font-extrabold">
+              PIN & AML
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('inventory')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'inventory'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            <span>Brankas Kas Fisik</span>
+          </button>
+
+          {isStaff && (
+            <button
+              onClick={() => setActiveTab('review')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                activeTab === 'review'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <FileCheck className="w-4 h-4" />
+              <span>Review KYC Nasabah</span>
               <span className="px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-extrabold">
                 Teller
               </span>
-            )}
-          </button>
+            </button>
+          )}
         </div>
 
         {/* Tab Content Panels */}
         <div className="space-y-6">
           {activeTab === 'rates' && (
             <div className="space-y-6">
-              <RatesTable />
-              <KycCustomerCard />
+              <RatesTable onOpenTrade={handleOpenTrade} />
+              <CustomerTransactionHistory onNewBooking={() => handleOpenTrade('USD', 'BUY')} />
+            </div>
+          )}
+
+          {activeTab === 'history' && (
+            <div className="space-y-6">
+              <CustomerTransactionHistory onNewBooking={() => handleOpenTrade('USD', 'BUY')} />
+              <RatesTable onOpenTrade={handleOpenTrade} />
+            </div>
+          )}
+
+          {activeTab === 'supervisor' && (
+            <div className="space-y-6">
+              <SupervisorAuthorization />
+              <InventoryPanel />
+            </div>
+          )}
+
+          {activeTab === 'inventory' && (
+            <div className="space-y-6">
+              <InventoryPanel />
+              <RatesTable onOpenTrade={handleOpenTrade} />
             </div>
           )}
 
           {activeTab === 'kyc' && (
             <div className="space-y-6">
               <KycCustomerCard />
-              <RatesTable />
+              <RatesTable onOpenTrade={handleOpenTrade} />
             </div>
           )}
 
           {activeTab === 'review' && (
             <div className="space-y-6">
               <TellerKycReview />
-              <RatesTable />
+              <RatesTable onOpenTrade={handleOpenTrade} />
             </div>
           )}
         </div>
       </main>
+
+      {/* Global Interactive Transaction Modal */}
+      <TransactionModal
+        isOpen={isTradeOpen}
+        onClose={() => setIsTradeOpen(false)}
+        rates={rates}
+        defaultCurrency={tradeCurrency}
+        defaultType={tradeType}
+        onTransactionSuccess={() => {
+          fetchRates();
+          setActiveTab('history');
+        }}
+        onNavigateToKyc={() => setActiveTab('kyc')}
+      />
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>Valuta Prima Gravity &copy; 2026 — Digital Money Changer Platform.</span>
           <span className="font-mono text-[11px] text-slate-400">
-            Engine: V7LA Master Engine v3.0 | Neon Cloud DB Connected
+            Engine: V7LA Master Engine v3.0 | Neon Cloud DB Connected | Sprint 2 Verified
           </span>
         </div>
       </footer>

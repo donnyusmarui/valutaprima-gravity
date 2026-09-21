@@ -12,10 +12,10 @@ if (!neonUrl) {
 const sql = neon(neonUrl);
 
 async function main() {
-  console.log('🌱 [Seeder] Connecting to Neon Database...');
+  console.log('🌱 [Seeder] Connecting to Neon Database for Sprint 2...');
 
-  // 1. Create Tables
-  console.log('🔨 [Seeder] Creating tables if not exist...');
+  // 1. Create / Update Tables
+  console.log('🔨 [Seeder] Ensuring tables and columns exist...');
   
   await sql`
     CREATE TABLE IF NOT EXISTS users (
@@ -37,6 +37,17 @@ async function main() {
       buy_rate NUMERIC(12, 2) NOT NULL,
       sell_rate NUMERIC(12, 2) NOT NULL,
       stock_amount NUMERIC(14, 2) DEFAULT 0,
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS currency_denominations (
+      id SERIAL PRIMARY KEY,
+      currency_code VARCHAR(3) NOT NULL,
+      denomination_value INTEGER NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 0,
+      is_available BOOLEAN DEFAULT TRUE,
       updated_at TIMESTAMP DEFAULT NOW()
     );
   `;
@@ -67,16 +78,40 @@ async function main() {
       locked_rate NUMERIC(12, 2) NOT NULL,
       amount_idr NUMERIC(16, 2) NOT NULL,
       service_fee_idr NUMERIC(12, 2) DEFAULT 0,
-      status VARCHAR(30) NOT NULL DEFAULT 'pending_teller',
+      denominations TEXT,
+      aml_flag BOOLEAN DEFAULT FALSE,
+      status VARCHAR(30) NOT NULL DEFAULT 'pending_supervisor',
       authorized_by VARCHAR(100),
+      authorized_at TIMESTAMP,
+      review_notes TEXT,
+      invoice_no VARCHAR(50),
       created_at TIMESTAMP DEFAULT NOW()
     );
   `;
 
-  // 2. Seed Default Users (Customer, Teller, Supervisor)
-  console.log('👤 [Seeder] Seeding default roles & demo users...');
+  // Alter transactions table columns if not yet present
+  await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS denominations TEXT;`;
+  await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS aml_flag BOOLEAN DEFAULT FALSE;`;
+  await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS review_notes TEXT;`;
+  await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS invoice_no VARCHAR(50);`;
+  await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS authorized_at TIMESTAMP;`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS invoices (
+      id SERIAL PRIMARY KEY,
+      invoice_no VARCHAR(50) UNIQUE NOT NULL,
+      transaction_id INTEGER REFERENCES transactions(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      amount_idr NUMERIC(16, 2) NOT NULL,
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `;
+
+  // 2. Seed Default Users
+  console.log('👤 [Seeder] Ensuring default demo users exist...');
   const demoUsers = [
-    { email: 'customer@valutaprima.com', name: 'Budi Santoso', role: 'customer', is_kyc_verified: false },
+    { email: 'customer@valutaprima.com', name: 'Budi Santoso', role: 'customer', is_kyc_verified: true },
     { email: 'teller@valutaprima.com', name: 'Siti Rahma (Teller)', role: 'teller', is_kyc_verified: true },
     { email: 'supervisor@valutaprima.com', name: 'Hendra Wijaya (Supervisor)', role: 'supervisor', is_kyc_verified: true },
   ];
@@ -87,12 +122,13 @@ async function main() {
       VALUES (${u.email}, ${u.name}, ${u.role}, ${u.is_kyc_verified})
       ON CONFLICT (email) DO UPDATE SET
         name = EXCLUDED.name,
-        role = EXCLUDED.role;
+        role = EXCLUDED.role,
+        is_kyc_verified = EXCLUDED.is_kyc_verified;
     `;
   }
 
-  // 3. Seed Exchange Rates
-  console.log('💱 [Seeder] Seeding exchange rates (real-time market baseline)...');
+  // 3. Seed Exchange Rates Baseline
+  console.log('💱 [Seeder] Updating exchange rates...');
   const rates = [
     { code: 'USD', name: 'US Dollar', buy: 15850.00, sell: 16050.00, stock: 45000 },
     { code: 'EUR', name: 'Euro', buy: 17200.00, sell: 17450.00, stock: 28000 },
@@ -116,7 +152,47 @@ async function main() {
     `;
   }
 
-  console.log('✅ [Seeder] Database initialized and seeded successfully!');
+  // 4. Seed Physical Denominations (Pecahan Kas Fisik)
+  console.log('💵 [Seeder] Seeding physical denominations inventory...');
+  await sql`DELETE FROM currency_denominations;`;
+
+  const denoms = [
+    // USD
+    { code: 'USD', val: 100, qty: 300 }, // $30,000
+    { code: 'USD', val: 50, qty: 200 },  // $10,000
+    { code: 'USD', val: 20, qty: 250 },  // $5,000
+    // EUR
+    { code: 'EUR', val: 100, qty: 150 }, // €15,000
+    { code: 'EUR', val: 50, qty: 200 },  // €10,000
+    { code: 'EUR', val: 20, qty: 150 },  // €3,000
+    // SGD
+    { code: 'SGD', val: 50, qty: 800 },  // $40,000
+    { code: 'SGD', val: 10, qty: 2500 }, // $25,000
+    // JPY
+    { code: 'JPY', val: 10000, qty: 100 }, // ¥1,000,000
+    { code: 'JPY', val: 5000, qty: 100 },  // ¥500,000
+    // AUD
+    { code: 'AUD', val: 100, qty: 200 }, // $20,000
+    { code: 'AUD', val: 50, qty: 240 },  // $12,000
+    // GBP
+    { code: 'GBP', val: 50, qty: 200 },  // £10,000
+    { code: 'GBP', val: 20, qty: 400 },  // £8,000
+    // CNY
+    { code: 'CNY', val: 100, qty: 500 }, // ¥50,000
+    { code: 'CNY', val: 50, qty: 600 },  // ¥30,000
+    // SAR
+    { code: 'SAR', val: 500, qty: 100 }, // ﷼50,000
+    { code: 'SAR', val: 100, qty: 450 }, // ﷼45,000
+  ];
+
+  for (const d of denoms) {
+    await sql`
+      INSERT INTO currency_denominations (currency_code, denomination_value, quantity, is_available, updated_at)
+      VALUES (${d.code}, ${d.val}, ${d.qty}, TRUE, NOW());
+    `;
+  }
+
+  console.log('✅ [Seeder] Sprint 2 database migration and seed completed successfully!');
 }
 
 main().catch((err) => {

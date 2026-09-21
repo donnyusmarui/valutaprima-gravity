@@ -19,7 +19,11 @@ export interface RateItem {
   updatedAt: string;
 }
 
-export const RatesTable: React.FC = () => {
+export interface RatesTableProps {
+  onOpenTrade?: (currencyCode: string, type: 'BUY' | 'SELL') => void;
+}
+
+export const RatesTable: React.FC<RatesTableProps> = ({ onOpenTrade }) => {
   const { user } = useAuth();
   const [rates, setRates] = useState<RateItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -163,7 +167,7 @@ export const RatesTable: React.FC = () => {
               </th>
               <th className="py-3 px-4 text-right hidden sm:table-cell">Spread</th>
               <th className="py-3 px-4 text-right hidden md:table-cell">Ketersediaan Stok</th>
-              {isStaff && <th className="py-3 px-4 text-center">Kelola</th>}
+              <th className="py-3 px-4 text-center">Aksi Transaksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-xs">
@@ -228,18 +232,29 @@ export const RatesTable: React.FC = () => {
                       </span>
                     </td>
 
-                    {/* Staff Actions */}
-                    {isStaff && (
-                      <td className="py-3.5 px-4 text-center">
-                        <button
-                          onClick={() => openEditModal(rate)}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition cursor-pointer"
-                          title="Ubah Kurs & Stok"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    )}
+                    {/* Actions: Transaksi & Staff Edit */}
+                    <td className="py-3.5 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {onOpenTrade && (
+                          <button
+                            onClick={() => onOpenTrade(rate.currencyCode, 'BUY')}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition shadow-xs cursor-pointer flex items-center gap-1"
+                            title="Beli / Jual Valas"
+                          >
+                            <span>Transaksi</span>
+                          </button>
+                        )}
+                        {isStaff && (
+                          <button
+                            onClick={() => openEditModal(rate)}
+                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition cursor-pointer"
+                            title="Ubah Kurs & Stok"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 );
               })

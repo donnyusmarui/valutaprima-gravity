@@ -10,6 +10,16 @@ import {
   handleGetPendingKyc,
   handleReviewKyc,
 } from '../api/handlers/kyc.handler';
+import {
+  handleCalculateEstimate,
+  handleCreateTransaction,
+  handleGetTransactions,
+  handleAuthorizeTransaction,
+} from '../api/handlers/transactions.handler';
+import {
+  handleGetDenominations,
+  handleUpdateDenomination,
+} from '../api/handlers/inventory.handler';
 
 dotenv.config();
 
@@ -78,6 +88,43 @@ app.get('/api/kyc/pending', async (_req, res) => {
 
 app.post('/api/kyc/review', async (req, res) => {
   const result = await handleReviewKyc(req.body);
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+// Inventory (Denominasi Kas Fisik) Endpoints
+app.get('/api/inventory', async (req, res) => {
+  const currencyCode = req.query.currencyCode as string;
+  const result = await handleGetDenominations(currencyCode);
+  res.status(result.success ? 200 : 500).json(result);
+});
+
+app.put('/api/inventory/update', async (req, res) => {
+  const result = await handleUpdateDenomination(req.body);
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+// Transactions Endpoints
+app.post('/api/transactions/estimate', async (req, res) => {
+  const result = await handleCalculateEstimate(req.body);
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+app.post('/api/transactions', async (req, res) => {
+  const result = await handleCreateTransaction(req.body);
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+app.get('/api/transactions', async (req, res) => {
+  const userIdStr = req.query.userId as string;
+  const userId = userIdStr ? parseInt(userIdStr) : undefined;
+  const role = req.query.role as string;
+  const status = req.query.status as string;
+  const result = await handleGetTransactions({ userId, role, status });
+  res.status(result.success ? 200 : 500).json(result);
+});
+
+app.post('/api/transactions/authorize', async (req, res) => {
+  const result = await handleAuthorizeTransaction(req.body);
   res.status(result.success ? 200 : 400).json(result);
 });
 
