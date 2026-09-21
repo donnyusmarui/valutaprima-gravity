@@ -1,0 +1,30 @@
+# === Credentials ===
+.env
+.env.local
+.env.production
+.env.*.local
+
+# === Dependencies ===
+node_modules/
+
+# === Build ===
+dist/
+.netlify/
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === V7LA ===
+.v7la-lock
+
+# === Logs ===
+*.log
+npm-debug.log*

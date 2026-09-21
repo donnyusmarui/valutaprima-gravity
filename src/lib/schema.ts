@@ -1,0 +1,54 @@
+import { pgTable, serial, text, numeric, timestamp, varchar, boolean } from 'drizzle-orm/pg-core';
+
+// Users / Customers
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  role: varchar('role', { length: 50 }).notNull().default('customer'), // 'customer' | 'teller' | 'supervisor'
+  avatarUrl: text('avatar_url'),
+  isKycVerified: boolean('is_kyc_verified').default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Exchange Rates
+export const exchangeRates = pgTable('exchange_rates', {
+  id: serial('id').primaryKey(),
+  currencyCode: varchar('currency_code', { length: 3 }).notNull().unique(), // 'USD', 'EUR', 'SGD', etc.
+  currencyName: varchar('currency_name', { length: 100 }).notNull(),
+  buyRate: numeric('buy_rate', { precision: 12, scale: 2 }).notNull(),
+  sellRate: numeric('sell_rate', { precision: 12, scale: 2 }).notNull(),
+  stockAmount: numeric('stock_amount', { precision: 14, scale: 2 }).default('0'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// KYC Submissions
+export const kycSubmissions = pgTable('kyc_submissions', {
+  id: serial('id').primaryKey(),
+  userId: serial('user_id').references(() => users.id),
+  idCardNumber: varchar('id_card_number', { length: 50 }).notNull(),
+  idCardType: varchar('id_card_type', { length: 20 }).notNull().default('KTP'), // 'KTP' | 'PASSPORT'
+  idCardFileUrl: text('id_card_file_url').notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // 'pending' | 'verified' | 'rejected'
+  reviewerId: varchar('reviewer_id', { length: 100 }),
+  reviewNotes: text('review_notes'),
+  submittedAt: timestamp('submitted_at').defaultNow().notNull(),
+  reviewedAt: timestamp('reviewed_at'),
+});
+
+// Transactions
+export const transactions = pgTable('transactions', {
+  id: serial('id').primaryKey(),
+  referenceNo: varchar('reference_no', { length: 50 }).notNull().unique(),
+  userId: serial('user_id').references(() => users.id),
+  type: varchar('type', { length: 10 }).notNull(), // 'BUY' | 'SELL'
+  currencyCode: varchar('currency_code', { length: 3 }).notNull(),
+  amountForeign: numeric('amount_foreign', { precision: 14, scale: 2 }).notNull(),
+  lockedRate: numeric('locked_rate', { precision: 12, scale: 2 }).notNull(),
+  amountIdr: numeric('amount_idr', { precision: 16, scale: 2 }).notNull(),
+  serviceFeeIdr: numeric('service_fee_idr', { precision: 12, scale: 2 }).default('0'),
+  status: varchar('status', { length: 30 }).notNull().default('pending_teller'), 
+  // 'pending_teller' | 'pending_supervisor' | 'approved' | 'awaiting_payment' | 'paid' | 'completed' | 'rejected'
+  authorizedBy: varchar('authorized_by', { length: 100 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
