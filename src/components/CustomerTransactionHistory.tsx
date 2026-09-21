@@ -43,7 +43,10 @@ export const CustomerTransactionHistory: React.FC<{ onNewBooking: () => void }> 
   const [selectedInvoice, setSelectedInvoice] = useState<TransactionItem | null>(null);
 
   const fetchHistory = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(`/api/transactions?userId=${user.id}&role=${user.role}`);

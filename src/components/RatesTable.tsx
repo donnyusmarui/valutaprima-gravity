@@ -27,6 +27,8 @@ export const RatesTable: React.FC<RatesTableProps> = ({ onOpenTrade }) => {
   const { user } = useAuth();
   const [rates, setRates] = useState<RateItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isOffline, setIsOffline] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [search, setSearch] = useState<string>('');
   const [editingRate, setEditingRate] = useState<RateItem | null>(null);
   const [editBuy, setEditBuy] = useState<string>('');
@@ -38,14 +40,19 @@ export const RatesTable: React.FC<RatesTableProps> = ({ onOpenTrade }) => {
 
   const fetchRates = async () => {
     setLoading(true);
+    setErrorMsg(null);
     try {
       const res = await fetch('/api/rates');
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
         setRates(data.data);
+        setIsOffline(!!data.isOfflineFallback);
+      } else {
+        setErrorMsg(data.error || 'Gagal memuat kurs');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch rates:', err);
+      setErrorMsg(err.message || 'Gagal terhubung ke server');
     } finally {
       setLoading(false);
     }
@@ -113,8 +120,14 @@ export const RatesTable: React.FC<RatesTableProps> = ({ onOpenTrade }) => {
           <div className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-emerald-600" />
             <h2 className="text-base sm:text-lg font-bold text-slate-900">Papan Kurs Valas Real-Time</h2>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Live Database
+            <span
+              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                isOffline
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}
+            >
+              {isOffline ? 'Data Kurs Indikatif (Offline/Cloud DB Setup)' : 'Live Database'}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -178,10 +191,24 @@ export const RatesTable: React.FC<RatesTableProps> = ({ onOpenTrade }) => {
                   Mengambil data kurs terkini dari database...
                 </td>
               </tr>
+            ) : errorMsg && rates.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center py-10 text-slate-500 space-y-2">
+                  <div className="text-xs font-bold text-amber-700">{errorMsg}</div>
+                  <button
+                    onClick={fetchRates}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold cursor-pointer hover:bg-emerald-700"
+                  >
+                    Muat Ulang Kurs
+                  </button>
+                </td>
+              </tr>
             ) : filteredRates.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center py-10 text-slate-400">
-                  Tidak ada mata uang yang cocok dengan pencarian "{search}".
+                  {search
+                    ? `Tidak ada mata uang yang cocok dengan pencarian "${search}".`
+                    : 'Tidak ada data kurs.'}
                 </td>
               </tr>
             ) : (
