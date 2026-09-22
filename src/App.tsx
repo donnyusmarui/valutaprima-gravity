@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
@@ -10,8 +10,16 @@ import { ArrowRightLeft } from 'lucide-react';
 function DashboardContent() {
   const { user, loading } = useAuth();
 
-  // Each role starts on its own 'dashboard' section
   const [activeSection, setActiveSection] = useState<string>('dashboard');
+
+  // Reset to dashboard home every time role changes (e.g. via role switcher)
+  const prevRoleRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (user?.role && user.role !== prevRoleRef.current) {
+      prevRoleRef.current = user.role;
+      setActiveSection('dashboard');
+    }
+  }, [user?.role]);
 
   // Loading state
   if (loading) {
