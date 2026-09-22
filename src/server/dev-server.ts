@@ -2,7 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
 import { handleHealthCheck } from '../api/handlers/health.handler';
-import { handleGetMe, handleDevSwitchRole, handleGoogleOAuthCallback } from '../api/handlers/auth.handler';
+import {
+  handleGetMe,
+  handleDevSwitchRole,
+  handleGoogleOAuthCallback,
+  handleEmailLogin,
+  handleEmailRegister,
+} from '../api/handlers/auth.handler';
 import { handleGetRates, handleUpdateRate } from '../api/handlers/rates.handler';
 import {
   handleSubmitKyc,
@@ -62,6 +68,18 @@ app.get('/api/auth/me', async (req, res) => {
 app.post('/api/auth/google', async (req, res) => {
   const { email, name, avatarUrl } = req.body;
   const result = await handleGoogleOAuthCallback({ email, name, avatarUrl });
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  const result = await handleEmailLogin({ email, password });
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  const { name, email, password } = req.body;
+  const result = await handleEmailRegister({ name, email, password });
   res.status(result.success ? 200 : 400).json(result);
 });
 

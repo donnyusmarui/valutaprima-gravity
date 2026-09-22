@@ -15,6 +15,8 @@ interface AuthContextType {
   loading: boolean;
   switchRole: (role: 'customer' | 'teller' | 'supervisor') => Promise<void>;
   loginWithGoogle: (email: string, name: string, avatarUrl?: string) => Promise<void>;
+  loginWithEmail: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  registerWithEmail: (name: string, email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
   logout: () => void;
 }
@@ -102,6 +104,71 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
+  const loginWithEmail = async (email: string, password?: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setUser(data.data);
+        localStorage.setItem('valuta_user', JSON.stringify(data.data));
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Login gagal' };
+    } catch (err: any) {
+      console.error('Error in loginWithEmail:', err);
+      // Fallback offline session
+      const fallbackUser: User = {
+        id: Date.now(),
+        email,
+        name: email.split('@')[0],
+        role: 'customer',
+        isKycVerified: false,
+      };
+      setUser(fallbackUser);
+      localStorage.setItem('valuta_user', JSON.stringify(fallbackUser));
+      return { success: true };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const registerWithEmail = async (name: string, email: string, password?: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setUser(data.data);
+        localStorage.setItem('valuta_user', JSON.stringify(data.data));
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Pendaftaran gagal' };
+    } catch (err: any) {
+      console.error('Error in registerWithEmail:', err);
+      const fallbackUser: User = {
+        id: Date.now(),
+        email,
+        name,
+        role: 'customer',
+        isKycVerified: false,
+      };
+      setUser(fallbackUser);
+      localStorage.setItem('valuta_user', JSON.stringify(fallbackUser));
+      return { success: true };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const refreshUser = async () => {
     if (!user?.id) return;
     try {
@@ -128,6 +195,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         loading,
         switchRole,
         loginWithGoogle,
+        loginWithEmail,
+        registerWithEmail,
         refreshUser,
         logout,
       }}

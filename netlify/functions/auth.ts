@@ -1,5 +1,11 @@
 import { Handler } from '@netlify/functions';
-import { handleGetMe, handleDevSwitchRole, handleGoogleOAuthCallback } from '../../src/api/handlers/auth.handler';
+import {
+  handleGetMe,
+  handleDevSwitchRole,
+  handleGoogleOAuthCallback,
+  handleEmailLogin,
+  handleEmailRegister,
+} from '../../src/api/handlers/auth.handler';
 
 export const handler: Handler = async (event) => {
   const headers = {
@@ -28,6 +34,24 @@ export const handler: Handler = async (event) => {
 
   if (event.httpMethod === 'POST') {
     const body = event.body ? JSON.parse(event.body) : {};
+
+    if (path === 'login') {
+      const result = await handleEmailLogin(body);
+      return {
+        statusCode: result.success ? 200 : 400,
+        headers,
+        body: JSON.stringify(result),
+      };
+    }
+
+    if (path === 'register') {
+      const result = await handleEmailRegister(body);
+      return {
+        statusCode: result.success ? 200 : 400,
+        headers,
+        body: JSON.stringify(result),
+      };
+    }
 
     if (path === 'dev-switch') {
       const result = await handleDevSwitchRole(body.role || 'customer');
