@@ -16,6 +16,7 @@ import {
   User,
   Menu,
   X,
+  DollarSign,
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -56,6 +57,14 @@ const ALL_ITEMS: SidebarItem[] = [
     label: 'Riwayat Transaksi',
     icon: <Receipt className="w-4 h-4" />,
     roles: ['customer', 'teller', 'supervisor'],
+  },
+  {
+    id: 'currency',
+    label: 'Kelola Mata Uang',
+    icon: <DollarSign className="w-4 h-4" />,
+    badge: 'Kurs',
+    badgeColor: 'indigo',
+    roles: ['teller', 'supervisor'],
   },
   {
     id: 'kyc',

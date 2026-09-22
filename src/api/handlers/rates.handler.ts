@@ -101,3 +101,65 @@ export async function handleUpdateRate(data: {
     };
   }
 }
+
+export async function handleAddRate(data: {
+  currencyCode: string;
+  currencyName: string;
+  buyRate: number;
+  sellRate: number;
+  stockAmount?: number;
+}) {
+  try {
+    const existing = await db
+      .select()
+      .from(schema.exchangeRates)
+      .where(eq(schema.exchangeRates.currencyCode, data.currencyCode.toUpperCase()));
+
+    if (existing.length > 0) {
+      return { success: false, error: `Mata uang ${data.currencyCode} sudah ada` };
+    }
+
+    const inserted = await db
+      .insert(schema.exchangeRates)
+      .values({
+        currencyCode: data.currencyCode.toUpperCase(),
+        currencyName: data.currencyName,
+        buyRate: data.buyRate.toString(),
+        sellRate: data.sellRate.toString(),
+        stockAmount: (data.stockAmount ?? 0).toString(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    return {
+      success: true,
+      message: `Mata uang ${data.currencyCode} berhasil ditambahkan`,
+      data: inserted[0],
+    };
+  } catch (error: any) {
+    console.error('Error in handleAddRate:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function handleDeleteRate(currencyCode: string) {
+  try {
+    const deleted = await db
+      .delete(schema.exchangeRates)
+      .where(eq(schema.exchangeRates.currencyCode, currencyCode.toUpperCase()))
+      .returning();
+
+    if (!deleted.length) {
+      return { success: false, error: 'Mata uang tidak ditemukan' };
+    }
+
+    return {
+      success: true,
+      message: `Mata uang ${currencyCode} berhasil dihapus`,
+    };
+  } catch (error: any) {
+    console.error('Error in handleDeleteRate:', error);
+    return { success: false, error: error.message };
+  }
+}
+

@@ -9,7 +9,7 @@ import {
   handleEmailLogin,
   handleEmailRegister,
 } from '../api/handlers/auth.handler';
-import { handleGetRates, handleUpdateRate } from '../api/handlers/rates.handler';
+import { handleGetRates, handleUpdateRate, handleAddRate, handleDeleteRate } from '../api/handlers/rates.handler';
 import {
   handleSubmitKyc,
   handleGetMyKyc,
@@ -91,6 +91,16 @@ app.get('/api/rates', async (_req, res) => {
 
 app.put('/api/rates/update', async (req, res) => {
   const result = await handleUpdateRate(req.body);
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+app.post('/api/rates', async (req, res) => {
+  const result = await handleAddRate(req.body);
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+app.delete('/api/rates/:currencyCode', async (req, res) => {
+  const result = await handleDeleteRate(req.params.currencyCode);
   res.status(result.success ? 200 : 400).json(result);
 });
 
