@@ -35,6 +35,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [showGoogleInput, setShowGoogleInput] = useState(false);
   const [googleEmailInput, setGoogleEmailInput] = useState('');
+  const [googleStep, setGoogleStep] = useState<'email' | 'password'>('email');
+  const [googlePasswordInput, setGooglePasswordInput] = useState('');
+  const [showGooglePassword, setShowGooglePassword] = useState(false);
 
   if (!isOpen) return null;
 
@@ -93,12 +96,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleGoogleClick = () => {
     setErrorMsg('');
+    setGoogleStep('email');
+    setGooglePasswordInput('');
     setShowGoogleInput(true);
   };
 
-  const handleGoogleSubmit = async (e: React.FormEvent) => {
+  const handleGoogleNextEmail = (e: React.FormEvent) => {
     e.preventDefault();
     if (!googleEmailInput) return;
+    setErrorMsg('');
+    setGoogleStep('password');
+  };
+
+  const handleGoogleFinalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googlePasswordInput) {
+      setErrorMsg('Password akun Google wajib diisi.');
+      return;
+    }
     setIsLoading(true);
     try {
       const extractedName = googleEmailInput.split('@')[0].replace(/[._-]/g, ' ');
@@ -164,49 +179,127 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             </div>
 
-            <form onSubmit={handleGoogleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Masukkan Akun Google (Email) *
-                </label>
-                <div className="relative flex items-center">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
-                  <input
-                    type="email"
-                    value={googleEmailInput}
-                    onChange={(e) => setGoogleEmailInput(e.target.value)}
-                    placeholder="nama@gmail.com / nama@ui.ac.id"
-                    autoFocus
-                    required
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
-                  />
+            {googleStep === 'email' ? (
+              <form onSubmit={handleGoogleNextEmail} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Masukkan Akun Google (Email) *
+                  </label>
+                  <div className="relative flex items-center">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+                    <input
+                      type="email"
+                      value={googleEmailInput}
+                      onChange={(e) => setGoogleEmailInput(e.target.value)}
+                      placeholder="nama@gmail.com / nama@ui.ac.id"
+                      autoFocus
+                      required
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowGoogleInput(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Kembali
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="flex-1 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-md shadow-orange-600/20 transition cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <span>Lanjutkan</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowGoogleInput(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Kembali
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-md shadow-orange-600/20 transition cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>Lanjutkan</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleGoogleFinalSubmit} className="space-y-4 animate-in fade-in slide-in-from-right duration-150">
+                {/* User Pill Badge */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                  <div className="flex items-center gap-2 text-slate-800 font-medium">
+                    <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-700 font-bold flex items-center justify-center text-[10px]">
+                      {googleEmailInput.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="truncate max-w-[200px] text-xs font-semibold">{googleEmailInput}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGoogleStep('email');
+                      setErrorMsg('');
+                    }}
+                    className="text-orange-600 hover:text-orange-700 font-bold text-[11px] hover:underline cursor-pointer"
+                  >
+                    Ganti
+                  </button>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700">
+                      Masukkan Password Google *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => alert('Petunjuk pemulihan sandi telah dikirim ke email akun Google Anda.')}
+                      className="text-[11px] font-semibold text-orange-600 hover:underline cursor-pointer"
+                    >
+                      Lupa sandi?
+                    </button>
+                  </div>
+                  <div className="relative flex items-center">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+                    <input
+                      type={showGooglePassword ? 'text' : 'password'}
+                      value={googlePasswordInput}
+                      onChange={(e) => setGooglePasswordInput(e.target.value)}
+                      placeholder="Masukkan password akun Google"
+                      autoFocus
+                      required
+                      className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGooglePassword(!showGooglePassword)}
+                      className="absolute right-3 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                    >
+                      {showGooglePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGoogleStep('email');
+                      setErrorMsg('');
+                    }}
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Kembali
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-md shadow-orange-600/20 transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <span>Masuk</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         ) : (
           <>
