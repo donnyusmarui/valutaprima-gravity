@@ -20,6 +20,16 @@ import {
   handleGetDenominations,
   handleUpdateDenomination,
 } from '../api/handlers/inventory.handler';
+import {
+  handleCreatePayment,
+  handleWebhookNotification,
+  handleGetPaymentStatus,
+} from '../api/handlers/payment.handler';
+import {
+  handleGetInvoiceData,
+  handleGetAuditLog,
+  handleGetPpatkReport,
+} from '../api/handlers/invoice.handler';
 
 dotenv.config();
 
@@ -126,6 +136,47 @@ app.get('/api/transactions', async (req, res) => {
 app.post('/api/transactions/authorize', async (req, res) => {
   const result = await handleAuthorizeTransaction(req.body);
   res.status(result.success ? 200 : 400).json(result);
+});
+
+// Payment Endpoints (Sprint 3 Langkah 7)
+app.post('/api/payment/create', async (req, res) => {
+  const result = await handleCreatePayment(req.body);
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+app.post('/api/payment/webhook', async (req, res) => {
+  const result = await handleWebhookNotification(req.body);
+  res.status(200).json(result); // Webhook SELALU 200
+});
+
+app.get('/api/payment/status', async (req, res) => {
+  const txnId = parseInt(req.query.id as string || '0');
+  const result = await handleGetPaymentStatus(txnId);
+  res.status(result.success ? 200 : 404).json(result);
+});
+
+// Invoice & Audit Log Endpoints (Sprint 3 Langkah 8)
+app.get('/api/invoice/data', async (req, res) => {
+  const txnId = parseInt(req.query.transactionId as string || '0');
+  const result = await handleGetInvoiceData(txnId);
+  res.status(result.success ? 200 : 404).json(result);
+});
+
+app.get('/api/invoice/audit-log', async (req, res) => {
+  const { amlOnly, currencyCode, startDate, endDate, limit } = req.query as Record<string, string>;
+  const result = await handleGetAuditLog({
+    amlOnly: amlOnly === 'true',
+    currencyCode,
+    startDate,
+    endDate,
+    limit: limit ? parseInt(limit) : 100,
+  });
+  res.status(200).json(result);
+});
+
+app.get('/api/invoice/ppatk-report', async (_req, res) => {
+  const result = await handleGetPpatkReport();
+  res.status(200).json(result);
 });
 
 app.listen(port, () => {

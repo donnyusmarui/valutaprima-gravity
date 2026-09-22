@@ -8,6 +8,8 @@ import { TransactionModal } from './components/TransactionModal';
 import { SupervisorAuthorization } from './components/SupervisorAuthorization';
 import { InventoryPanel } from './components/InventoryPanel';
 import { CustomerTransactionHistory } from './components/CustomerTransactionHistory';
+import PaymentModal from './components/PaymentModal';
+import AuditLogPanel from './components/AuditLogPanel';
 import {
   TrendingUp,
   ShieldCheck,
@@ -19,12 +21,13 @@ import {
   Building2,
   ShieldAlert,
   ArrowRightLeft,
+  ClipboardList,
 } from 'lucide-react';
 
 function DashboardContent() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<
-    'rates' | 'history' | 'kyc' | 'review' | 'supervisor' | 'inventory'
+    'rates' | 'history' | 'kyc' | 'review' | 'supervisor' | 'inventory' | 'audit'
   >('rates');
 
   // Trade Modal State
@@ -32,6 +35,20 @@ function DashboardContent() {
   const [tradeCurrency, setTradeCurrency] = useState<string>('USD');
   const [tradeType, setTradeType] = useState<'BUY' | 'SELL'>('BUY');
   const [rates, setRates] = useState<RateItem[]>([]);
+
+  // Payment Modal State (Sprint 3)
+  const [paymentTransaction, setPaymentTransaction] = useState<{
+    id: number;
+    invoiceNo: string;
+    currencyCode: string;
+    amount: number;
+    rate: number;
+    totalAmountIdr: number;
+    serviceFee: number;
+    transactionType: 'buy' | 'sell';
+    amlFlag?: boolean;
+    status: string;
+  } | null>(null);
 
   const isStaff = user?.role === 'teller' || user?.role === 'supervisor';
 
@@ -218,6 +235,24 @@ function DashboardContent() {
               </span>
             </button>
           )}
+
+          {/* Sprint 3: Audit Log Tab — visible to supervisor */}
+          {user?.role === 'supervisor' && (
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                activeTab === 'audit'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <ClipboardList className="w-4 h-4" />
+              <span>Audit Log & PPATK</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-700 text-[10px] font-extrabold">
+                BI/PPATK
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Tab Content Panels */}
@@ -263,6 +298,13 @@ function DashboardContent() {
               <RatesTable onOpenTrade={handleOpenTrade} />
             </div>
           )}
+
+          {/* Sprint 3: Audit Log Panel */}
+          {activeTab === 'audit' && (
+            <div className="space-y-6">
+              <AuditLogPanel userRole={user?.role || 'supervisor'} />
+            </div>
+          )}
         </div>
       </main>
 
@@ -280,12 +322,27 @@ function DashboardContent() {
         onNavigateToKyc={() => setActiveTab('kyc')}
       />
 
+      {/* Sprint 3: Payment Modal — mounted globally, triggered after transaction authorized */}
+      {paymentTransaction && (
+        <PaymentModal
+          transaction={paymentTransaction}
+          customerName={user?.name || 'Nasabah'}
+          customerEmail={user?.email || ''}
+          onClose={() => setPaymentTransaction(null)}
+          onPaymentComplete={() => {
+            setPaymentTransaction(null);
+            setActiveTab('history');
+            fetchRates();
+          }}
+        />
+      )}
+
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>Valuta Prima Gravity &copy; 2026 — Digital Money Changer Platform.</span>
           <span className="font-mono text-[11px] text-slate-400">
-            Engine: V7LA Master Engine v3.0 | Neon Cloud DB Connected | Sprint 2 Verified
+            Engine: V7LA Master Engine v3.0 | Neon Cloud DB Connected | Sprint 3 Active
           </span>
         </div>
       </footer>
